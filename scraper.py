@@ -1,8 +1,3 @@
-from bs4 import BeautifulSoup as bs4
-import requests
-import pandas as pd
-import base64
-import os.path
 import schedule
 import time
 import smtplib
@@ -11,58 +6,16 @@ from decouple import config
 
 
 def job():
-    prices = []
-    stars = []
-    titles = []
-    urlss = []
-
-    pages_to_scrape = 10
-    pages = [
-        ("http://books.toscrape.com/catalogue/page-{}.html").format(i)
-        for i in range(1, pages_to_scrape + 1)
-    ]
-
-    for item in pages:
-        page = requests.get(item)
-        soup = bs4(page.text, "html.parser")
-        for i in soup.findAll("h3"):
-            titles.append(i.getText())
-        for j in soup.findAll("p", class_="price_color"):
-            prices.append(j.getText())
-        for s in soup.findAll("p", class_="star-rating"):
-            for k, v in s.attrs.items():
-                stars.append(v[1])
-        divs = soup.findAll("div", class_="image_container")
-        for thumbs in divs:
-            tgs = thumbs.find("img", class_="thumbnail")
-            urls = "http://books.toscrape.com/" + str(tgs["src"])
-            newurls = urls.replace("../", "")
-            urlss.append(newurls)
-    data = {"Title": titles, "Prices": prices, "Stars": stars, "URLs": urlss}
-    df = pd.DataFrame(data=data)
-    df.index += 1
-    directory = os.path.dirname(os.path.realpath(__file__))
-    filename = "scrapedfile.csv"
-    file_path = os.path.join(directory, "csvfiles/", filename)
-    df.to_csv(file_path)
+    import datetime
 
     # sendig mail with csv file
     msg = EmailMessage()
     msg["Subject"] = "New Scrapped Data"
     msg["From"] = config("FROM_EMAIL")
     msg["To"] = config("TO_EMAIL")
-    msg.set_content("Hi, Check the the below attachment for latest scrapped data.")
 
-    # reading the file data
-    with open(file_path, "rb") as f:
-        file_data = f.read()
-        f.close()
-    msg.add_attachment(
-        file_data,
-        maintype="application",
-        subtype="octet_stream",
-        filename="scrapedfile",
-    )
+    msg.set_content(f"Hi, Present time {datetime.datetime.now()} ")
+
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
             server.login(config("FROM_EMAIL"), config("PASSWORD"))
